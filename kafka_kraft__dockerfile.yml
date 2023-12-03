@@ -1,0 +1,50 @@
+version: '3'
+services:
+  kafka01:
+    image: bitnami/kafka
+    container_name: kafka01
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+      - "9094:9094"
+    environment:
+      - BITNAMI_DEBUG=true
+# KRaft settings
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@192.168.56.102:9093,2@192.168.56.103:9093,3@192.168.56.104:9093
+      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
+# Listeners
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://192.168.56.102:9092,EXTERNAL://192.168.56.102:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+# Clustering
+      - KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR=3
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=3
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=2
+    networks:
+      - kafka-net
+# === Kafka UI =
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui
+    ports:
+      - 9000:8080
+    environment:
+      - DYNAMIC_CONFIG_ENABLED=true
+      - KAFKA_CLUSTERS_0_NAME=abcdefghijklmnopqrstuv
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=192.168.56.102:9094,192.168.56.103:9094,192.168.56.104:9094
+        #      - KAFKA_CLUSTERS_1_NAME=abcdefghijklmnopqrstuv
+        #      - KAFKA_CLUSTERS_1_BOOTSTRAPSERVERS=http://192.168.56.103:9094
+        #      - KAFKA_CLUSTERS_2_NAME=abcdefghijklmnopqrstuv
+        #      - KAFKA_CLUSTERS_2_BOOTSTRAPSERVERS=http//192.168.56.104:9094
+    depends_on:
+      - kafka01
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    driver: bridge
